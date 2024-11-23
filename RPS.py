@@ -1,0 +1,10 @@
+from random import sample
+COMPUTER_GUESS = (sample(("rock", "paper", "scissors"), k=1))
+PLAYER_GUESS = input("TYPE. (Rock, Paper, or Scissors) =>  ").lower()
+if (PLAYER_GUESS) == "rock" and (COMPUTER_GUESS) == ["paper"]: print("Computer guessed " + COMPUTER_GUESS[0] + ". You lost!")
+elif (PLAYER_GUESS) == "paper" and (COMPUTER_GUESS) == ["scissors"]: print("Computer guessed " + COMPUTER_GUESS[0] + ". You lost!")
+elif (PLAYER_GUESS) == "scissors" and (COMPUTER_GUESS) == ["rock"]: print("Computer guessed " + COMPUTER_GUESS[0] + ". You lost!")
+elif (PLAYER_GUESS) == "rock" and (COMPUTER_GUESS) == ["scissors"]: print("Computer guessed " + COMPUTER_GUESS[0] + ". You won!")
+elif (PLAYER_GUESS) == "paper" and (COMPUTER_GUESS) == ["rock"]: print("Computer guessed " + COMPUTER_GUESS[0] + ". You won!")
+elif (PLAYER_GUESS) == "scissors" and (COMPUTER_GUESS) == ["paper"]: print("Computer guessed " + COMPUTER_GUESS[0] + ". You won!")
+elif (PLAYER_GUESS) == COMPUTER_GUESS[0]: print("Computer guessed " + COMPUTER_GUESS[0] + ". You tied!")
