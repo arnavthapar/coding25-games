@@ -69,6 +69,7 @@ class Continued:
             if inventory[idx][1] == 1:
                 inventory.pop(idx)
             else: inventory[idx][1] -= 1
+            printed.append("You finish eating.")
         except Exception:
             printed.append("You cannot eat that.")
             turn -= 1
@@ -81,7 +82,8 @@ class Continued:
             for item in inventory:
                 items_list[ALPHABET[idx]] = item
                 idx += 1
-            if item[0] not in items_info["potions"]:
+            print(items_list)
+            if items_list[key][0] not in items_info["potions"]:
                     printed.append("You cannot drink that.")
             else:
                 match items_list[key][2]:
@@ -105,12 +107,12 @@ class Continued:
                 if inventory[idx][1] == 1:
                     inventory.pop(idx)
                 else: inventory[idx][1] -= 1
+                printed.append("You finish drinking.")
         except:
             printed.append("You cannot drink that.")
-            turn -= 1
         return inventory, printed, hunger_points, turn
     def floor_one(printed:list, location:list, kb, key:str = "") -> None:
-                            if type(key) != kb.Key:
+                            if type(key) != kb:
                                 if key.strip().lower() == "y":
                                     location = [99999, 99999]
                                     return False, printed, location

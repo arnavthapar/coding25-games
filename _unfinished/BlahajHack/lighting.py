@@ -36,7 +36,7 @@ class Lighting():
             z += 1
             x = -1
     def bresenham_line(self, x0, y0, x1, y1):
-        """Bresenham's Line Algorithm to get points on a line from (x0, y0) to (x1, y1)."""
+        """Bresenham's Line Algorithm to get points on a line from (x0, y0) to (x1, y1)"""
         points = []
         dx = abs(x1 - x0)
         dy = abs(y1 - y0)
@@ -57,7 +57,7 @@ class Lighting():
         return points
 
     def lightUp(self, area, location_x, location_y, level, radius=4, debug=0):
-        """Light up squares."""
+        """Light up squares"""
         self.reset(area, debug)
         for dy in range(-radius, radius + 1):
             for dx in range(-radius, radius + 1):

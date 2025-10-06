@@ -129,7 +129,7 @@ if __name__ == "__main__":
                 player.blitme()
                 enemy.blitme()
                 text.write(f"LV {player.lv} | {player.xp} XP/15 XP", 20, 20)
-                text.write(f"{player.hp} HP /10 HP", 800, 20)
+                text.write(f"{player.hp} HP /5 HP", 800, 20)
                 text.write(x, 467, 10)
                 player.explode()
                 pygame.display.flip()

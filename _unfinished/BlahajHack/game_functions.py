@@ -4,14 +4,16 @@ from time import sleep
 from settings import Settings
 from pynput import keyboard as kb
 from lighting import Lighting
-from json import loads
-from ast import literal_eval
 from math import ceil
 from mysql.connector import connect, Error
 from effects import *
 from continued import Continued as continued
+from copy import deepcopy
+import numpy as np
 class Functions:
     def __init__(self, username:str, args:list):
+        self.cnx = connect(user='root', database='blahajhack')
+        self.cursor = self.cnx.cursor(buffered=True)
         """Initialize everything."""
         self.printed = []
         self.light_debug = [0, 0] #     down:  weight, floor color,
@@ -47,15 +49,11 @@ class Functions:
         #if 1==1:
                 system('clear')
                 # user varchar(40), area MEDIUMTEXT, player TINYTEXT, data MEDIUMTEXT, light MEDIUMTEXT, inventory MEDIUMTEXT, location varchar(10), other MEDIUMTEXT
-                # Open connection and cursor, run the query, and fetch the results.
-                cnx = connect(user='root', database='blahajhack')
-                cursor = cnx.cursor(buffered=True)
-                cursor.execute(f'SELECT * FROM saves WHERE user="{self.username}";')
-                if len(cursor.fetchall()) != 0:
+                # Open connection and self.cursor, run the query, and fetch the results.
+                self.cursor.execute(f'SELECT * FROM saves WHERE user="{self.username}";')
+                if len(self.cursor.fetchall()) != 0:
                     loading = input("Do you want to use your most recent save?\nWARNING: Not using it will delete it permanently! (y/n)=> ")
                     if loading == "y": self.load()
-                cursor.close()
-                cnx.close()
                 self.delete_save()
         except Error as err:
             print(f"There was an error with checking your save file. {err}\nCreating new game...")
@@ -70,7 +68,7 @@ class Functions:
         self.turn = 1 # The current turn the player is on.
         self.dungeon_level = 1 # The dungeon level. (y)
         self.location = [0, 0] # Location of player. (x, z) When using this, the area's 3x2 matrix is (y, z, x) so use [1] then [0].
-        self.levelData = []
+        self.levelData = [] # Data for levels
         self.inventory = [] #[name(str), amount(int), status(int), status known(bool), extra status([color(str), timer(int), [special name discovered, special name], equipped, defense extra])]
         self.inventory.append(["Apple", 3, 0, True, ['w', 0, [True], 0, 0]])
         self.inventory.append(["Cloak", 1, 1, True, ['w', 0, [True], 1, 1]])
@@ -147,19 +145,19 @@ class Functions:
         lists = 0
         prev = []
         for floor in self.area:
-            current = self.area[randrange(1, 6)].copy()
+            current = deepcopy(self.area[randrange(1, 6)])
             while current == prev:
-                current = self.area[randrange(1, 6)].copy()
+                current = deepcopy(self.area[randrange(1, 6)])
             prev = current
             if floor == []:
-                self.area[lists] = current.copy()
+                self.area[lists] = current
             lists += 1
         data_location = [0, 0, 0]
         for floor in self.area:
             self.levelData.append([])
             for data in floor:
                 self.levelData[data_location[0]].append([])
-                for _ in data:
+                for i in data:
                     self.levelData[data_location[0]][data_location[1]].append([])
                 data_location[1] += 1
             data_location[0] += 1
@@ -172,7 +170,7 @@ class Functions:
         self.levelData[50][5][24].append([1, 'b', "Water Walking Boots", 1, 1, False, ["w", -1, [False, "Blue Boots"], 0, 0]])
         for row in self.levelData:
             for tile in row:
-                for _ in tile:
+                for i in tile:
                     if self.area[data_location[2]][data_location[0]][data_location[1]] == ".":
                         if randrange(0, 100) == 20:
                             x = sample(self.items_list["consumables"], k=1)[0]
@@ -227,7 +225,7 @@ class Functions:
                                 defense = " +" + defense
                             else: defense = " " + defense
                         if extras:
-                            for _ in self.area[self.dungeon_level][0]:
+                            for i in self.area[self.dungeon_level][0]:
                                 zone += " "
                         if self.inventory_open:
                             zone += f"              {self.COLORS[self.inventory[inventory_index][4][0]]}{curse}{defense}{name}\33[0m{equipped} ({self.inventory[inventory_index][1]})\33[0m"
@@ -293,9 +291,15 @@ class Functions:
         printing = "\n".join(self.printed) + "\n" + zone + "\n"
         printing += f"[{hp_name}] St:{self.player_att['strength']} Dx:{self.player_att['dexterity']} Co:{self.player_att['constitution']} Wi:{self.player_att['wisdom']} In:{self.player_att['intelligence']}"
         printing += "\n" + f"HP:{self.player_att['hp']}({self.player_att['max_hp']}) Dlvl: {self.dungeon_level} T: {self.turn} | {self.get_weight()[0]} {self.get_food()}"
+        # Show effects
+        effectNames = {Effects.CONFUSED:"Confused", Effects.DECEIT:"Deceit", Effects.FROZEN:"Frozen", Effects.HALLU:"Hallucinating", Effects.POISON:"Poisoned",
+                       Effects.SLEEP:"Asleep", Effects.STONING:"\b\b"}
+        for i in self.effects:
+            printing += f"  {effectNames[i[0]]}"
+        # Save every 50 turns
         if self.turn % 50 == 0:
             self.save()
-        for _ in range(len(self.inventory) - idx):
+        for i in range(len(self.inventory) - idx):
             if self.inventory_open or inventory_choose:
                 if inventory_show:
                     printing += '\n'
@@ -442,26 +446,31 @@ class Functions:
                 return False
             if self.player_att['dexterity'] <= 4:
                 self.player_att['hp'] = 0
-                print("You have such bad reactions that it takes seconds to realize you moved your hand. You collapse.")
+                print("You have such bad reactions that it takes minutes to notice anything. You collapse.")
                 self.death()
                 return False
     def discover(self, prev, item):
         for i in range(len(self.inventory)):
             if self.inventory[i][0] == item[0]:
                 idx = i
-        article1 = "a"
+        article1 = "is a"
         article2 = "this"
         if item[0] in ['A', 'E', "I", "O", "U"]:
-            article1 = "an"
+            article1 = "is an"
         if prev[-1] == "s":
             article2 = "these"
+            article1 = "are a"
+            if item[0] in ['A', 'E', "I", "O", "U"]:
+                article1 = "are an"
         self.inventory[idx][4][2][1] == True
-        final = f"You discover {article2} {prev} is {article1} {item[0]}!"
+        final = f"You discover {article2} {prev} {article1} {item[0]}!"
         return final
 
     def checkKeydownEvents(self, key=None):
+     moved = False
      if self.status != 2 and self.input == 0:
       """Run appropriate code for keydown events."""
+      
       try:
         if key.char == 'i':
             self.inventory_open = 1 - self.inventory_open
@@ -492,18 +501,18 @@ class Functions:
                                 if self.username != "Guest" and self.debug == False:
                                     try:
                                     #if 1==1:
-                                        # Open connection and cursor, run the query, and fetch the results.
-                                        cnx = connect(user='root', database='blahajhack')
-                                        cursor = cnx.cursor(buffered=True)
-                                        cursor.execute(f'SELECT wins FROM users WHERE name="{self.username}";')
-                                        wins = cursor.fetchall()[0][0]
-                                        cursor.execute(f'UPDATE users SET wins="{str(wins+1)}" WHERE name="{self.username}";')
-                                        cnx.commit()
+                                        # Open connection and self.cursor, run the query, and fetch the results.
+                                        self.cursor.execute(f'SELECT wins FROM users WHERE name="{self.username}";')
+                                        wins = self.cursor.fetchall()[0][0]
+                                        self.cursor.execute(f'UPDATE users SET wins="{str(wins+1)}" WHERE name="{self.username}";')
+                                        self.cnx.commit()
                                     except Error as err:
                                         print("There was an error with increasing your win count.", err)
                                     except Exception as err:
                                         print("There was an unkown error with increasing your win count.", err)
                                     self.delete_save()
+                                self.cnx.close()
+                                self.cursor.close()
                                 return False
                             elif self.dungeon_level == 1:
                                 self.input = 2
@@ -530,17 +539,14 @@ class Functions:
                         self.printArea(True)
                         print("Which item? =>")
                         self.input = 4
-                        self.turn += 5
                     case 'e': # Eating
                         self.printArea(True)
                         print("Which item? =>")
                         self.input = 5
-                        self.turn += 1
                     case 'd': # Drinking
                         self.printArea(True)
                         print("Which item? =>")
                         self.input = 6
-                        self.turn += 1
                     case ",": # Picking up
                         if len(self.levelData[self.dungeon_level][self.location[1]][self.location[0]]) == 0:
                             self.printed.append("There is no item to pick up here.")
@@ -555,7 +561,7 @@ class Functions:
                                         article = "an"
                                     if name[-1] == "s":
                                         article = "the"
-                                    _, max_weight, weight, = self.get_weight()
+                                    i, max_weight, weight, = self.get_weight()
                                     for i in self.items_info:
                                         #self.printed.append(i, info[2], i[info[2]], weight+i[info[2]], max_weight*4)
                                         if info[2] in self.items_info[i]:
@@ -587,6 +593,7 @@ class Functions:
                     case 'Q':
                         print("Are you sure you want to quit? (y/n)=>")
                         self.input = 3
+                    # Debug keys
                     case "'":
                         if self.debug: self.light_debug[0] = 1-self.light_debug[0]
                         else:self.printed.append("' is not a valid key.")
@@ -635,15 +642,21 @@ class Functions:
                         self.turn -= 1
                     case '\\':
                         if self.debug:
+                            from ast import literal_eval
                             x = literal_eval(input("[name(str), amount(int), status(int), status known(bool), extra status([color(str), timer(int), [special name discovered, special name], equipped, defense extra])]\n=>"))
                             self.inventory.append(x)
                         else:self.printed.append("\\ is not a valid key.")
                         self.hunger_points -= 1
                         self.turn -= 1
+                    # Deal with extra keys
                     case _:
-                            self.printed.append(f"{key} is not a valid key.")
-                            self.turn -= 1
-                            self.hunger_points += 1
+                        # Add effects while in debug mode
+                        if self.debug:
+                            if key.char in ['1', '2', '3', '4', '5', '6', '7']:
+                                self.effects, self.printed = Affected.addEffect(self.effects, Effects(int(key.char)), 10, self.printed)
+                        self.printed.append(f"{key} is not a valid key.")
+                        self.turn -= 1
+                        self.hunger_points += 1
       except AttributeError:
         if not self.inventory_open:
             if key in [kb.Key.right, kb.Key.left,  kb.Key.up, kb.Key.down]:
@@ -664,6 +677,7 @@ class Functions:
                             self.location[0] += 1
                     try:
                     #if 1==1:
+                        moved = True
                         if (self.area[self.dungeon_level][self.location[1]][self.location[0]] in ["-", "|", " ", "}"]) and self.light_debug[1] != 1:
                             if (self.area[self.dungeon_level][self.location[1]][self.location[0]] in ["}"]):
                                 if "Fire Resistance Amulet" not in self.equipped and "Water Walking Boots" not in self.equipped:
@@ -722,11 +736,13 @@ class Functions:
                                             self.turn -= 1
                                             self.hunger_points += 1
                                             self.exercise['strength'] -= 0.003
+                            moved = False
                         else:
                             if self.exer() == False:
                                 return False
                     except Exception as err:
-                        print(err)
+                        self.printed.append('You tripped.')
+                        if self.debug: self.printed.append(err)
                         if key == kb.Key.up:
                             self.location[1] += 1
                         elif key == kb.Key.left:
@@ -735,6 +751,7 @@ class Functions:
                             self.location[1] -= 1
                         else:
                             self.location[0] -= 1
+                        moved = False
                         self.turn -= 1
                         self.hunger_points += 1
                     if self.area[self.dungeon_level][self.location[1]][self.location[0]] == "+":
@@ -789,9 +806,12 @@ class Functions:
                             self.printed.append(full)
                             self.turn -= 1
                             self.hunger_points += 1
-      if key not in [kb.Key.enter, kb.Key.backspace, kb.Key.space, kb.Key.shift, kb.Key.shift_r, kb.Key.alt_r, kb.Key.alt, kb.Key.cmd, kb.Key.cmd_r, kb.Key.ctrl,kb.Key.tab] and (self.input == 0) and (key != None):
+      if key not in [kb.Key.enter, kb.Key.backspace, kb.Key.space, kb.Key.shift, kb.Key.shift_r, kb.Key.alt_r, kb.Key.alt, kb.Key.cmd, kb.Key.cmd_r, kb.Key.ctrl,kb.Key.tab, None] and (self.input == 0):
+        if self.debug: self.printed.append(f'Effects:{self.effects}')
         self.printArea()
         self.turn += 1
+        if moved: self.effects, self.status, self.exercise = Affected.subtract(self.effects, self.status, self.exercise)
+      elif key == None: self.turn += 1
       else:
           self.hunger_points += 1
      elif self.input != 0:
@@ -803,7 +823,7 @@ class Functions:
             match self.input:
                 case 1: self.printed = continued.investigate(self.inventoryList(), self.printed, key_new)
                 case 2:
-                    x, self.printed, self.location = continued.floor_one(self.printed, self.location, kb, key_new)
+                    x, self.printed, self.location = continued.floor_one(self.printed, self.location, kb.Key, key_new)
                     if not x:
                         print("You reach the surface, and your blood turns to vinegar. (It's a very weird feeling)")
                         self.death()
@@ -811,10 +831,21 @@ class Functions:
                 case 3:
                     if key_new == "y":
                         self.save()
+                        self.cursor.close()
+                        self.cnx.close()
                         return False # Returning false ends pynput, ending the program
-                case 4: self.inventory, self.printed, self.equipped, self.turn = continued.wear(self.inventoryList(), self.inventory, self.printed, self.equipped, self.items_list, self.turn, key_new)
-                case 5: self.inventory, self.hunger_points, self.turn =  continued.eat(self.inventory, self.ALPHABET, self.items_hunger, self.hunger_points, self.printed, self.turn, key_new)
-                case 6: self.inventory, self.printed, self.hunger_points, self.turn = continued.drink(self.inventory, self.ALPHABET, self.printed, self.hunger_points, self.turn, self.items_info, key_new)
+                case 4:
+                    self.inventory, self.printed, self.equipped, self.turn = continued.wear(self.inventoryList(), self.inventory, self.printed, self.equipped, self.items_list, self.turn, key_new)
+                    self.input = 0
+                    self.checkKeydownEvents()
+                case 5:
+                    self.inventory, self.hunger_points, self.turn =  continued.eat(self.inventory, self.ALPHABET, self.items_hunger, self.hunger_points, self.printed, self.turn, key_new)
+                    self.input = 0
+                    self.checkKeydownEvents()
+                case 6:
+                    self.inventory, self.printed, self.hunger_points, self.turn = continued.drink(self.inventory, self.ALPHABET, self.printed, self.hunger_points, self.turn, self.items_info, key_new)
+                    self.input = 0
+                    self.checkKeydownEvents()
             self.input = 0
             self.printArea()
      if self.status == 2 or self.player_att['hp'] <= 0:
@@ -833,7 +864,7 @@ class Functions:
             option = ""
             if option.lower().strip() == "y" or option == "":
                 if len(self.inventory) != 0:
-                    for _ in range(len(self.inventory) + 1):
+                    for i in range(len(self.inventory) + 1):
                         if inventory_index == -1:
                             print("\n\33[7mItems Held\33[0m")
                         else:
@@ -871,12 +902,10 @@ class Functions:
         self.delete_save()
     def delete_save(self):
         if self.debug == False:
-            cnx = connect(user='root', database='blahajhack')
-            cursor = cnx.cursor(buffered=True)
-            cursor.execute(f'SELECT * FROM saves WHERE user="{self.username}";')
-            if len(cursor.fetchall()) != 0:
-                cursor.execute(f'DELETE FROM saves WHERE user="{self.username}";')
-                cnx.commit()
+            self.cursor.execute(f'SELECT * FROM saves WHERE user="{self.username}";')
+            if len(self.cursor.fetchall()) != 0:
+                self.cursor.execute(f'DELETE FROM saves WHERE user="{self.username}";')
+                self.cnx.commit()
 
     def save(self):
         if self.username != "Guest":
@@ -884,21 +913,27 @@ class Functions:
             try:
                 system('clear')
                 # user varchar(40), area MEDIUMTEXT, player TINYTEXT, data MEDIUMTEXT, light MEDIUMTEXT, inventory MEDIUMTEXT, location varchar(10), dungeon varchar(3), other MEDIUMTEXT
-                # Open connection and cursor, run the query, and fetch the results.
-                cnx = connect(user='root', database='blahajhack')
-                cursor = cnx.cursor(buffered=True)
                 location = str(self.location[0]) + "," + str(self.location[1])
-                #cursor.execute("DROP TABLE saves;")
-                #cursor.execute("CREATE TABLE saves(user varchar(40), area MEDIUMTEXT, player TINYTEXT, data MEDIUMTEXT, light MEDIUMTEXT, inventory MEDIUMTEXT, location varchar(10), dungeon varchar(3), other MEDIUMTEXT, exercise MEDIUMTEXT)")
-                cursor.execute(f'SELECT * FROM saves WHERE user="{self.username}";')
-                saves = cursor.fetchall()
-                if saves != []: cursor.execute(f'UPDATE saves SET area="{self.area}", player="{self.player_att}", data="{self.levelData}", light="{self.lighting.levelLight}", inventory="{self.inventory}", location="{location}", dungeon="{self.dungeon_level}",other="[{self.hunger_points}, {self.turn}, {self.equipped}]", exercise="{self.exercise}";')
-                cursor.execute(f'INSERT INTO saves(user, area, player, data, light, inventory, location, dungeon, other, exercise) VALUES("{self.username}", "{self.area}", "{self.player_att}", "{self.levelData}", "{self.lighting.levelLight}", "{self.inventory}", "{location}", "{self.dungeon_level}", "[{self.hunger_points}, {self.turn}, {self.equipped}]", "{self.exercise}");')
-                cnx.commit()
+                #self.cursor.execute("DROP TABLE saves;")
+                if self.effects != []:
+                    effectsArray = np.array(self.effects, dtype=object)
+                    # Convert the first column to strings
+                    effectsArray[:, 0] = effectsArray[:, 0].astype(str)
+                    effectsArray = effectsArray.tolist()
+                else: effectsArray = self.effects
+                #self.cursor.execute("CREATE TABLE saves(user varchar(40), area MEDIUMTEXT, player TINYTEXT, data MEDIUMTEXT, light MEDIUMTEXT, inventory MEDIUMTEXT, location varchar(10), dungeon varchar(3), other MEDIUMTEXT, exercise MEDIUMTEXT)")
+                self.cursor.execute(f'SELECT * FROM saves WHERE user="{self.username}";')
+                saves = self.cursor.fetchall()
+                if saves != []: self.cursor.execute(f'UPDATE saves SET area="{self.area}", player="{self.player_att}", data="{self.levelData}", light="{self.lighting.levelLight}", inventory="{self.inventory}", location="{location}", dungeon="{self.dungeon_level}",other="[{self.hunger_points}, {self.turn}, {self.equipped}, {effectsArray}]", exercise="{self.exercise}";')
+                else:
+                    self.cursor.execute(
+                    f'INSERT INTO saves(user, area, player, data, light, inventory, location, dungeon, other, exercise)VALUES("{self.username}", "{self.area}", "{self.player_att}", "{self.levelData}", "{self.lighting.levelLight}", "{self.inventory}", "{location}","{self.dungeon_level}","[{self.hunger_points}, {self.turn}, {self.equipped}, {effectsArray}]", "{self.exercise}");'
+                    )
+                self.cnx.commit()
             except Error as err:
                 print("There was an error with saving.", err)
             except Exception as err:
-                print("There was an unkown error with saving.", err)
+                print("There was an unknown error with saving.", err)
 
     def load(self) -> None:
         """Load the game."""
@@ -906,12 +941,10 @@ class Functions:
         #if 1 == 1:
                 system('clear')
                 # user varchar(40), area MEDIUMTEXT, player TINYTEXT, data MEDIUMTEXT, light MEDIUMTEXT, inventory MEDIUMTEXT, location varchar(10), other MEDIUMTEXT
-                # Open connection and cursor, run the query, and fetch the results.
-                cnx = connect(user='root', database='blahajhack')
-                cursor = cnx.cursor(buffered=True)
-                cursor.execute(f'SELECT * FROM saves WHERE user="{self.username}";')
+                # Open connection and self.cursor, run the query, and fetch the results.
+                self.cursor.execute(f'SELECT * FROM saves WHERE user="{self.username}";')
                 if 1 == 1:
-                    a = cursor.fetchall()
+                    a = self.cursor.fetchall()
                     x_pos = ""
                     y_pos = ""
                     y_adding = False
@@ -922,19 +955,23 @@ class Functions:
                             x_pos += i
                         else:
                             y_pos += i
-                    player = a[0][2].replace("'", '"')
+                    from ast import literal_eval
                     self.area = literal_eval(a[0][1])
-                    self.player_att = loads(player)
+                    self.player_att = literal_eval(a[0][2])
                     self.levelData = literal_eval(a[0][3])
-                    self.lighting.levelLight = loads(a[0][4])
+                    self.lighting.levelLight = literal_eval(a[0][4])
                     self.inventory = literal_eval(a[0][5])
                     self.location = [int(x_pos), int(y_pos)]
                     self.dungeon_level = int(a[0][7])
                     self.turn = int(literal_eval(a[0][8])[1])
                     self.hunger_points = int(literal_eval(a[0][8])[0])
                     self.equipped = literal_eval(a[0][8])[2]
-                    new = a[0][9].replace("'", '"')
-                    self.exercise = loads(new)
+                    self.exercise = literal_eval(a[0][9])
+                    self.effects = literal_eval(a[0][8])[3]
+                    effectNames = {"Effects.CONFUSED":Effects.CONFUSED, "Effects.DECEIT":Effects.DECEIT, "Effects.FROZEN":Effects.FROZEN, "Effects.HALLU":Effects.HALLU, "Effects.POISON":Effects.POISON,
+                       "Effects.SLEEP":Effects.SLEEP, "Effects.STONING":Effects.STONING}
+                    for i in enumerate(self.effects):
+                        self.effects[i[0]][0] = effectNames[self.effects[i[0]][0]]
         except Error as err:
             print(f"There was an error with loading your save file. {err} \nCreating new game...")
             sleep(2)
@@ -942,6 +979,7 @@ class Functions:
         except Exception as err:
             if self.debug:
                 print(f"There was an error with loading your save file. The error \"{err}\" occurred.\nCreating new game...")
+                sleep(2)
             else:
                 print("There was an unknown error with loading your save file.\nCreating new game...")
             sleep(2)

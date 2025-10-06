@@ -3,7 +3,6 @@ from game_functions import Functions
 from os import system
 from mysql.connector import connect, Error
 from sys import argv
-# Last Update: March 29 2025
 def databaseRun(query=""):
     """Run database queries and get results."""
     try:
