@@ -1,6 +1,7 @@
 from enum import Enum
 
 class Constants(Enum):
+    # Ingredients
     Nightrose = 0
     Whisperthorn = 1
     Frostblossom = 2
@@ -11,8 +12,8 @@ class Constants(Enum):
     Whispleaf = 7
     Bottled_Echos = 8
     Glowing_Mushroom = 9
-
-    Water = {"id":1,"color":"iceb", "sell":5}
+    # Potions
+    Water = {"id":1,"color":"ice", "sell":5}
     Garbage = {"id":2,"color":"gargreen"}
     Remove_Rust = {"id":3,"color":"grey"}
     Create_Flowers = {"id":4, "color":"lgreen"}
@@ -53,6 +54,15 @@ class Constants(Enum):
     Whispering = {"id":39,"color":"blue"}
     Frostburn = {"id":40,"color":'green'}
     Glowing = {"id":41,"color":'yellow'}
+    # Effects
+    Fire_Resisting = {"id":1, "length":3, "outcome":None}
+    Poisoned = {"id":2, "length":5, "outcome":"death"}
+    #!PLACEHOLDER = {"id":3, "length":2, "outcome":"death"}
+    Silenced = {"id":3, "length":4, "outcome":None}
+    Regenerating = {"id":4, "length":2, "outcome":None}
+    Slowed = {"id":5, "length":4, "outcome":None}
+    Quickened = {"id":6, "length":3, "outcome":None}
+    Invisible = {"id":7, "length":3, "outcome":None}
 class Combinations():
     combinations = {
         'Nightrose':{
