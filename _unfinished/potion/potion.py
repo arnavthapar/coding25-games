@@ -11,18 +11,14 @@ def printBottle(liquid:_c):
 
 def printCabinet(l:list[_c]):
     print("Current Cabinet")
-    for i in l:
-        print(i.name.replace("_", " "))
+    for i in l: print(i.name.replace("_", " "))
 
 def addEffect(effect:_c):
     effects[effect] = effect.value["length"]
 
 def addPotion(*potions:_c):
     for i in potions:
-        if i in potionCabinet:
-            potionCabinet[result]["amount"] += 1
-        else:
-            potionCabinet[result] = {"amount":1}
+        potionCabinet.setdefault(i, {"amount": 0})["amount"] += 1
 
 def removePotion(*potions:_c):
     for i in potions:
@@ -42,15 +38,15 @@ def listCabinet(l:list[_c], removed:_c | None = None) -> dict[str, _c]:
     alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
     a = {}
     offset = 0
-    for i in enumerate(l):
-        if i[1] != removed:
-            print(f"{alphabet[i[0]-offset]}) {i[1].name.replace('_', ' ')} ({l[i[1]]["amount"]})")
-            a[alphabet[i[0]-offset]] = i[1]
+    for idx, val in enumerate(l):
+        if val != removed:
+            print(f"{alphabet[idx-offset]}) {val.name.replace('_', ' ')} ({l[val]["amount"]})")
+            a[alphabet[idx-offset]] = val
         else:
             offset = 1
     return a
 
-cabinet = {_c.Nightrose:{"amount":1}, _c.Frostblossom:{"amount":1}, _c.Whispleaf:{"amount":1}}
+cabinet = {_c.Nightrose:{"amount":2}, _c.Frostblossom:{"amount":2}, _c.Whispleaf:{"amount":1}}
 potionCabinet = {_c.Speed:{"amount":1}, _c.Sleep:{"amount":17}}
 effects = {}
 COLORS={"dred":"\x1b[38;5;1m", "red":"\x1b[38;5;9m", "orange":"\x1b[38;5;214m", "yellow":"\x1b[38;5;227m", "gargreen":"\x1b[38;5;2m", "lgreen":"\x1b[38;5;46m",
@@ -95,6 +91,7 @@ while alive:
                         print("It's water.")
                     case _c.Garbage:
                         print("This tastes really bad... You throw up.")
+                        effects = {}
                     case _c.Remove_Rust:
                         print("It tastes like soda.")
                     case _c.Create_Flowers | _c.Indigestion:
