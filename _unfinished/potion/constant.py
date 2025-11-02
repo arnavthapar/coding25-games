@@ -2,16 +2,16 @@ from enum import Enum
 
 class Constants(Enum):
     # Ingredients
-    Nightrose = 0
-    Whisperthorn = 1
-    Frostblossom = 2
-    Sunfire_Lily = 3
-    Powdered_Moonstone = 4
-    Obsidian_Ash = 5
-    Phoenix_Feather_Dust = 6
-    Whispleaf = 7
-    Bottled_Echos = 8
-    Glowing_Mushroom = 9
+    Nightrose = {"idG":1, "color":"dpurple"}
+    Whisperthorn = {"idG":2, "color":"blue"}
+    Frostblossom = {"idG":3, "color":"ice"}
+    Sunfire_Lily = {"idG":4, "color":"orange"}
+    Powdered_Moonstone = {"idG":5, "color":"white"}
+    Obsidian_Ash = {"idG":6, "color":"dred"}
+    Phoenix_Feather_Dust = {"idG":7, "color":"orange"}
+    Whispleaf = {"idG":8, "color":"blue"}
+    Bottled_Echos = {"idG":9, "color":"blue"}
+    Glowing_Mushroom = {"idG":10, "color":"lblue"}
     # Potions
     Water = {"id":1,"color":"ice", "sell":5}
     Garbage = {"id":2,"color":"gargreen"}

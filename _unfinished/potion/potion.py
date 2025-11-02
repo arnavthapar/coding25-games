@@ -11,8 +11,8 @@ def printBottle(liquid:_c):
 
 def printCabinet(l:list[_c]):
     print("Current Cabinet")
-    for i in l: print(i.name.replace("_", " "))
-
+    for i in l:
+        print(f"{COLORS[i.value["color"]]}{i.name.replace("_", " ")}\33[0m")
 def addEffect(effect:_c):
     effects[effect] = effect.value["length"]
 
