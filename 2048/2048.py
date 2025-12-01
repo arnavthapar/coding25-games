@@ -144,7 +144,6 @@ class num_game:
                                 self.move("down")
                         if self.prev_area != self.area:
                             moved = True
-        
         found = False
         while found == False and moved == True:
             x = self.random()

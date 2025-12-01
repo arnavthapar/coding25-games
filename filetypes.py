@@ -2,7 +2,7 @@ from random import randrange
 from os import system
 from time import sleep
 files = {
-    1: [[".py"], [".png"], [".jpeg", ".jpg"], [".css"], [".html"], [".txt"], [".csv"], [".md"], [".xml"], [".json"]],
+    1: [[".py", ".pyt"], [".png"], [".jpeg", ".jpg"], [".css"], [".html"], [".txt"], [".csv"], [".md"], [".xml"], [".json"]],
     2: [[".java"], [".sh"], [".bat"], [".c", ".cc", ".cpp", ".cxx"], [".docx"], [".go"], [".pptx"], [".pdf"], [".php"], [".js"]],
     3: [[".cs"], [".rar"], [".zip"], [".bak", ".backup"], [".lua"], [".apk"], [".exe"], [".bin"], [".dmg"], [".mov"]],
     4: [[".uot", ".odt"], [".sqlite"], [".flac"], [".mp3"], [".wav"], [".avi"], [".mp4"], [".mkv"], [".log"], [".conf"]],
