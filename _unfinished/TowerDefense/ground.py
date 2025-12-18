@@ -11,8 +11,14 @@ class Ground():
         self.back = self.load('back')
         self.sidebarImages = (self.load("entersidebar"), self.load("exitsidebar"), self.load("sidebar"), self.load("insidebar"), self.load("sideback"))
         self.buttonImages = (self.load("nextwave"),)
-        self.turretImages = (self.load("towers/turret"),)
-    def draw(self, screen:pygame.surface.Surface, area:list, towers:dict[tuple[int, int]:tuple[int, classmethod]], setup:int=0):
+        self.turretImages = (self.load("towers/turret"),self.load("towers/turret2"), self.load("towers/turretDual"))
+        self.path3_rot = {
+            0: self.path3,
+            1: pygame.transform.rotate(self.path3, 90),
+            2: pygame.transform.rotate(self.path3, 180),
+            3: pygame.transform.rotate(self.path3, 270),
+        }
+    def draw(self, screen:pygame.surface.Surface, area:list, setup:int=0):
         location = [0, 0]
         array_y = 0
         array_x = 0
@@ -25,6 +31,12 @@ class Ground():
                         case (1, 16):
                             screen.blit(self.sidebarImages[4], location)
                             screen.blit(self.turretImages[0], location)
+                        case (1, 17):
+                            screen.blit(self.sidebarImages[4], location)
+                            screen.blit(self.turretImages[1], location)
+                        case (2, 16):
+                            screen.blit(self.sidebarImages[4], location)
+                            screen.blit(self.turretImages[2], location)
                         case (10, 16):
                             screen.blit(self.buttonImages[0], location)
                         case (10, 17):
@@ -37,18 +49,26 @@ class Ground():
                         case 1: screen.blit(self.path1, location)
                         case 2: screen.blit(self.path2, location)
                         case 3: screen.blit(self.path3, location)
-                        case 4: screen.blit(pygame.transform.rotate(self.path3, 90), location)
-                        case 5: screen.blit(pygame.transform.rotate(self.path3, 180), location)
-                        case 6: screen.blit(pygame.transform.rotate(self.path3, 270), location)
+                        case 4: screen.blit(self.path3_rot[1], location)
+                        case 5: screen.blit(self.path3_rot[2], location)
+                        case 6: screen.blit(self.path3_rot[3], location)
                     if ((x, y) == (1, 14)) and setup == 1:
                         screen.blit(self.sidebarImages[1], location)
                     if ((x, y) == (1, 18)) and setup == 2:
                         screen.blit(self.sidebarImages[1], location)
-                if (x, y) in towers:
-                    screen.blit(self.turretImages[towers[(x, y)][0]], location)
+
                 location[0] += 64
                 array_x += 1
             array_y += 1
             array_x = 0
             location[1] += 64
             location[0] = 0
+    def drawTowers(self, screen:pygame.surface.Surface, towers:dict[tuple[int, int]:tuple[classmethod]]):
+        for (x, y), tower in towers.items():
+            cx = y * 64
+            cy = x * 64
+
+            rotated = tower.get_rotated_image(self)
+
+            rect = rotated.get_rect(center=(cx, cy))
+            screen.blit(rotated, rect)

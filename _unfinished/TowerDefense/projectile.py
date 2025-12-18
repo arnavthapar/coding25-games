@@ -1,54 +1,83 @@
 import pygame
-from numpy import arctan2, degrees
 class Bullets():
-    def __init__(self):
+    def __init__(self, towerType:int):
         self.color = (255, 255, 255)
-        self.h_color = (255, 255, 0)
-        self.speed_factor = 1
+        self.speed_factor = 2
         self.bullets = []
-        self.timer_reset = (20)
+        self.attack = 1 # normally 1
+        self.towerType = towerType
+        self.angle = 0
+        self.towerTypesList = {
+            0:{"NAME":"Basic Turret", "RANGE":130, "COOLDOWN":40, "EXTRA":{}},
+            1:{"NAME":"Full Turret", "RANGE":200, "COOLDOWN":4, "EXTRA":{}},
+            2:{"NAME":"Dual Turret", "RANGE":200, "COOLDOWN":4, "EXTRA":{"DUAL":True}},
+        }
+
+        self.timer_reset = self.towerTypesList[self.towerType]["COOLDOWN"]
         self.timer = self.timer_reset
-        self.attack = 1 #! 1
-    def calc_nearest_enemy(self, e_rect, rect):
+        self._last_angle = None
+        self._rotated = None
+
+    def get_rotated_image(self, ground):
+        angle = -self.angle - 180
+        if angle != self._last_angle:
+            self._rotated = pygame.transform.rotate(
+                ground.turretImages[self.towerType], angle
+            )
+            self._last_angle = angle
+        return self._rotated
+    def calc_nearest_enemy(self, e_rect:list[dict["pos":list[int, int], "direction":int,"health":int, "rect":pygame.rect.Rect]], rect:pygame.rect.Rect):
         """ Find nearest enemy and calculate angle to it """
         center = pygame.Vector2(rect.center)
         vector = pygame.Vector2()
         if len(e_rect) > 0:
             # Find closest enemy
-            en = min([e for e in e_rect], key=lambda e: pow(e["pos"][0]-rect.x, 2) + pow(e["pos"][1]-rect.y, 2))
+            rx, ry = rect.center
+            en = min(
+                e_rect,
+                key=lambda e: (e["rect"].centerx - rx) ** 2 + (e["rect"].centery - ry) ** 2
+            )
             # Find angle
-            x_a = en["pos"][0] - rect.x
-            y_a = en["pos"][1] - rect.y
-            theta_r = arctan2(y_a, x_a)
-            angle = degrees(theta_r)
+            ex, ey = en["rect"].center
+            x_a = ex - rect.centerx
+            y_a = ey - rect.centery
+            c = (x_a**2 + y_a**2) # Pythagorean Theorem
+            if c > self.towerTypesList[self.towerType]["RANGE"]**2: return False, False # sqrt of 16900 is 130
+            angle = -pygame.math.Vector2(x_a, y_a).angle_to((1, 0))
+            self.angle = angle
         else:
-            angle = 100 # 100 if no enemy on the screen
-        vector.from_polar((1, angle))
-        return center, vector
-    def shoot(self, screen, e_rect:list, player:list[int, int]):
+            return False, False # 100 if no enemy on the screen
+        vector.from_polar((self.speed_factor * 4, angle))
+        return center, vector,
+    def shoot(self, screen, e_rect:list, player:list[int, int], screen_rect:pygame.rect.Rect):
         """ Fire new bullets and move other bullets """
         # Check for new bullets
-        leveled = 0
         self.timer -= 1
-        if self.timer < 1:
+        #rect = pygame.Rect(0, 0, 20, 20)
+        #rect.center = [player[1] + 40, player[0] + 40]
+        #pygame.draw.circle(screen, self.color, rect.center, self.towerTypesList[self.towerType]["RANGE"])
+        if self.timer == 0:
             self.timer = self.timer_reset
             # Create rect for new bullet and store it
             rect = pygame.Rect(0, 0, 20, 20)
-            rect.center = player[::-1]
-            rect.top = player[1] + 32
+            rect.center = (player[1], player[0]) # Intended swap
             #rect.centery = player.rect.centery
             center, vector = self.calc_nearest_enemy(e_rect, rect)
+            if center == False:
+                return 0
             self.bullets.append([rect, vector, center])
-        for i in range(len(self.bullets)):
-            if i > len(self.bullets) - 1:
-                break
+            if "DUAL" in self.towerTypesList[self.towerType]["EXTRA"]:
+                self.bullets.append([rect.copy(), -vector, center.copy()])
+        for i in range(len(self.bullets) - 1, -1, -1):
             # Draw bullets
             pygame.draw.rect(screen, self.color, self.bullets[i][0])
-            self.bullets[i][2] += self.bullets[i][1] * 4
+            self.bullets[i][2] += self.bullets[i][1]
             self.bullets[i][0].center = self.bullets[i][2]
-            idx = 0
-            for m in e_rect:
-                #rect.topleft = e_rect["pos"]
+            if not screen_rect.colliderect(self.bullets[i][0]):
+                self.bullets.pop(i)
+                continue
+            for idx in range(len(e_rect) - 1, -1, -1):
+                m = e_rect[idx]
                 # Check if any bullet has hit an enemy
                 if self.bullets[i][0].colliderect(m["rect"]):
                     self.bullets.pop(i)
@@ -57,19 +86,4 @@ class Bullets():
                     if e_rect[idx]["health"] < 1:
                             e_rect.pop(idx)
                     break
-                else:
-                    # Destroy bullets if they go off the edge of screen
-                    if self.bullets[i][0].x <= 0:
-                        self.bullets.pop(i)
-                        break
-                    elif self.bullets[i][0].y <= 0:
-                        self.bullets.pop(i)
-                        break
-                    elif self.bullets[i][0].x >= 1184:
-                        self.bullets.pop(i)
-                        break
-                    elif self.bullets[i][0].y >= 768:
-                        self.bullets.pop(i)
-                        break
-                idx += 1
-        return leveled
+        return self.angle
