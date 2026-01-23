@@ -80,6 +80,7 @@ images = {1:load("snakeM"), 2:load('snakeDL'), 3:load('snakeDR'), 4:load('snakeU
           11: load("snakeDE"), 12:load("snakeUE"), 13:load('snakeLE'), 14:load('snakeRE')}
 colors = (load('red'), load('yellow'), load('blue'), load('green'))
 transitionImgs = (load('transition'), load('black'))
+reversed = pygame.transform.flip(transitionImgs[0], True, False)
 appleLoc = {"r":(3, 6), "y":(999, 999), "b":(999, 999), "g":(999, 999)}
 sounds = (pygame.mixer.Sound('sound/beep.mp3'), pygame.mixer.Sound('sound/slide.mp3'))
 bg = pygame.transform.scale(pygame.image.load("images/swirl.jpg").convert(), (1024, 704))
@@ -111,7 +112,7 @@ while True:
         screen.fill((200, 200, 200))
         previous = snakeLocs[-1]
         time += dt
-        if time > 0.1:
+        if time > 0.1 and transition == 0:
             time = 0
             if len(snakeDir) == 0: snakeDir.append(prevDir)
             match snakeDir[0]:
@@ -243,12 +244,25 @@ while True:
         playing = False
         transition += dt
         screen.blit(transitionImgs[0], (1024 - (transition * 1024), 0))
-        screen.blit(transitionImgs[0], (2048 - (transition * 1024), 0))
-        if transition > 3:
-            skill = True
-            transition = 0
+        screen.blit(transitionImgs[1], (2048 - (transition * 1024), 0))
+        screen.blit(reversed, (3072 - (transition * 1024), 0))
+        if transition > 1.75:
             CAMERA_Y = 0
-    elif skill:
+            snakePDir = [90, 90, 90]
+            appleLoc = {"r":(3, 6), "y":(999, 999), "b":(999, 999), "g":(999, 999)}
+            snakeArea = []
+            for idx in range(7):
+                snakeArea.append([])
+                for _ in range(13):
+                    snakeArea[idx].append(0)
+            snakeLocs = [(3, 0), (3, 1), (3, 2)]
+            snakeImgs = [6, 7, 13]
+            snakeDir = [90]
+            playing = True
+        if transition > 4:
+            transition = 0
+
+    '''elif skill:
         _, scroll_velocity, points = check_events(snakeDir, scroll_velocity, points)
         t += 1
 
@@ -262,5 +276,5 @@ while True:
         screen.blit(distorted, (0, 0))
         text.write(f"{points} POINTS", 800, 20)
         upgrades.drawAll(CAMERA_Y, SCREEN_CENTER, clock.tick(60)/1000)
-        #screen.blit(upgrades[0], (SCREEN_CENTER[0] - 64, SCREEN_CENTER[1] - 64 + CAMERA_Y * 2))
+        #screen.blit(upgrades[0], (SCREEN_CENTER[0] - 64, SCREEN_CENTER[1] - 64 + CAMERA_Y * 2))'''
     pygame.display.flip()

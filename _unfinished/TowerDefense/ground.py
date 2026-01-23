@@ -1,9 +1,9 @@
 import pygame
 
 class Ground():
-    def load(self, path:str) -> pygame.surface.Surface:
+    def load(self, path:str) -> pygame.surface.SurfaceType:
         return pygame.image.load(f'images/{path}.png')
-    def __init__(self, grid:list) -> None:
+    def __init__(self, grid:list):
         self.grid = grid
         self.path1 = self.load('path1')
         self.path2 = self.load('path2')
@@ -11,14 +11,17 @@ class Ground():
         self.back = self.load('back')
         self.sidebarImages = (self.load("entersidebar"), self.load("exitsidebar"), self.load("sidebar"), self.load("insidebar"), self.load("sideback"))
         self.buttonImages = (self.load("nextwave"),)
-        self.turretImages = (self.load("towers/turret"),self.load("towers/turret2"), self.load("towers/turretDual"))
+        self.turretImages = (
+            self.load("towers/turret"),self.load("towers/turret2"), self.load("towers/turretDual"), self.load("towers/sniper"),
+            self.load("towers/quick")
+        )
         self.path3_rot = {
             0: self.path3,
             1: pygame.transform.rotate(self.path3, 90),
             2: pygame.transform.rotate(self.path3, 180),
             3: pygame.transform.rotate(self.path3, 270),
         }
-    def draw(self, screen:pygame.surface.Surface, area:list, setup:int=0):
+    def draw(self, screen:pygame.surface.SurfaceType, area:list[list[int]], setup:int=0):
         location = [0, 0]
         array_y = 0
         array_x = 0
@@ -37,6 +40,12 @@ class Ground():
                         case (2, 16):
                             screen.blit(self.sidebarImages[4], location)
                             screen.blit(self.turretImages[2], location)
+                        case (2, 17):
+                            screen.blit(self.sidebarImages[4], location)
+                            screen.blit(self.turretImages[3], location)
+                        case (3, 16):
+                            screen.blit(self.sidebarImages[4], location)
+                            screen.blit(self.turretImages[4], location)
                         case (10, 16):
                             screen.blit(self.buttonImages[0], location)
                         case (10, 17):
@@ -63,12 +72,12 @@ class Ground():
             array_x = 0
             location[1] += 64
             location[0] = 0
-    def drawTowers(self, screen:pygame.surface.Surface, towers:dict[tuple[int, int]:tuple[classmethod]]):
+    def drawTowers(self, screen:pygame.surface.Surface, towers:dict[tuple[int, int]], setup:int):
         for (x, y), tower in towers.items():
-            cx = y * 64
-            cy = x * 64
+            if not (setup == 1 and y > 14):
+                cx = y * 64 + 32
+                cy = x * 64 + 32
+                rotated = tower.get_rotated_image(self.turretImages)
 
-            rotated = tower.get_rotated_image(self)
-
-            rect = rotated.get_rect(center=(cx, cy))
-            screen.blit(rotated, rect)
+                rect = rotated.get_rect(center=(cx, cy))
+                screen.blit(rotated, rect)
